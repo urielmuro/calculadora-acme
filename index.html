@@ -56,7 +56,8 @@ function run(){
  const rows=o=>[['OD',o.odMax,o.odMin],['ID',o.idMax,o.idMin]].concat(o.pdMax!==undefined?[['PD',o.pdMax,o.pdMin]]:[]);
  const tb=(k,o)=>`<div class="card"><h2>${name} ${k}</h2><table><tr><th></th><th>MAX</th><th>MIN</th></tr>${rows(o).map(r=>`<tr><td>${r[0]}</td><td>${f(r[1])}</td><td>${f(r[2])}</td></tr>`).join('')}</table><button class="cp" data-k="${k}">Copiar ${k}</button></div>`;
  $('out').innerHTML=tb('PIN',pin)+tb('BOX',box);
- const r=(k,o)=>`${name} ${k}\n\tMAX\tMIN\n`+rows(o).map(q=>`${q[0]}\t${f(q[1])}\t${f(q[2])}`).join('\n');
+ const cname=f(D)+' '+n+(st?'-ST ACME':'-ACME');
+ const r=(k,o)=>`${cname} ${k}\n\tMAX\tMIN\n`+rows(o).filter(q=>q[0]!=='PD').map(q=>`${q[0]}\t${f(q[1])}\t${f(q[2])}`).join('\n');
  txts={PIN:r('PIN',pin),BOX:r('BOX',box)};
  document.querySelectorAll('.cp').forEach(b=>{b.onclick=async()=>{const k=b.dataset.k;try{await navigator.clipboard.writeText(txts[k]);b.textContent='Copiado ✓'}catch(e){b.textContent='No se pudo copiar'}setTimeout(()=>b.textContent='Copiar '+k,1500)}});
  $('info').innerHTML=`Paso p = ${p.toFixed(4)} in · altura h = ${h.toFixed(4)} · holgura c = ${c.toFixed(3)} · tol. diámetro de paso = ${Td2.toFixed(4)}` +` · desplazamiento del diámetro de paso del PIN (es) = ${es.toFixed(4)}`;
