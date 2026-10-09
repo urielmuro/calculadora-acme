@@ -10,12 +10,15 @@
 h1{font-size:20px;margin:0 0 12px}label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 input,select,button{width:100%;font:inherit;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--fg)}
+select:disabled{opacity:.6}
 button{background:var(--ac);color:#fff;border:0;font-weight:600;cursor:pointer}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-top:12px;overflow-x:auto}
 .card h2{font-size:15px;margin:0 0 8px;color:var(--ac)}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
 th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--bd)}th:first-child,td:first-child{text-align:left}
 .cp{margin-top:10px}
+.info{font-size:13px;color:var(--mut);margin-top:12px;line-height:1.45}
+.warn{font-size:13px;margin-top:10px;padding:8px 10px;border-left:3px solid var(--ac);background:var(--card);line-height:1.45}
 .note{font-size:12px;color:var(--mut);margin-top:14px;line-height:1.45}
 </style></head><body>
 <h1>Calculadora rosca ACME / Stub ACME</h1>
@@ -23,28 +26,43 @@ th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--bd)}th:firs
 <div><label>Diámetro nominal (in)</label><input id="d" type="number" step="0.001" value="1" inputmode="decimal"></div>
 <div><label>Hilos por pulgada (TPI)</label><input id="n" type="number" step="0.5" value="8" inputmode="decimal"></div>
 </div>
-<div style="margin-bottom:10px"><label>Tipo de rosca</label>
-<select id="t"><option value="stub">Stub ACME</option><option value="acme">ACME</option></select></div>
+<div class="row">
+<div><label>Tipo de rosca</label><select id="t"><option value="stub">Stub ACME</option><option value="acme">ACME</option></select></div>
+<div><label>Clase</label><select id="c"><option value="2">2G</option><option value="3">3G</option><option value="4">4G</option></select></div>
+</div>
+<div style="margin-bottom:6px"><label>Decimales</label><select id="x"><option value="3">3 (0,000)</option><option value="4">4 (0,0000)</option></select></div>
 <div id="out"></div>
-<p class="note">Valores en pulgadas, 3 decimales. PIN = rosca exterior, BOX = rosca interior. Fórmulas: altura de rosca h = 0,5p (ACME) o 0,3p (Stub); holgura c = 0,020 (≤10 TPI) o 0,010 (&gt;10 TPI); tolerancias de OD/ID de la tuerca y del ID del pin calibradas con tu ejemplo 1"-8 ST ACME (clase 2G). Verifica contra ASME B1.5 / B1.8 o tu norma antes de enviar a taller.</p>
+<div class="info" id="info"></div>
+<div class="warn" id="warn"></div>
+<p class="note">Valores en pulgadas. PIN = rosca exterior, BOX = rosca interior. ACME: fórmulas de ASME B1.5, serie G, rosca de una entrada y longitud de acople hasta 2D. El Stub ACME (ASME B1.8) hereda las clases de B1.5; confirma contra la norma antes de liberar planos a taller.</p>
 <script>
-const f=x=>x.toFixed(3).replace('.',',');
-let txts={};
 const $=id=>document.getElementById(id);
+const KP={2:.03,3:.014,4:.01},KD={2:.006,3:.0028,4:.002},ES={2:.008,3:.006,4:.004};
+let txts={};
 function run(){
- const D=parseFloat($('d').value),n=parseFloat($('n').value),st=$('t').value==='stub';
- if(!(D>0&&n>0)){$('out').innerHTML='';return}
+ const D=parseFloat($('d').value),n=parseFloat($('n').value),st=$('t').value==='stub',dec=+$('x').value;
+ const cl=+$('c').value;
+ const f=v=>v.toFixed(dec).replace('.',',');
+ if(!(D>0&&n>0)){$('out').innerHTML='';$('info').textContent='';$('warn').textContent='';return}
  const p=1/n,h=(st?0.3:0.5)*p,c=n<=10?0.020:0.010,s=Math.sqrt(D);
- const minor=D-2*h,t5=0.05*p;
- const pin={odMax:D,odMin:D-t5,idMax:minor-c};pin.idMin=pin.idMax-(0.0105*s+t5);
- const box={odMin:D+c,idMin:minor,idMax:minor+t5};box.odMax=box.odMin+0.022*s;
- const name=f(D)+' '+n+(st?'-ST ACME':'-ACME');
- const tb=(k,o)=>`<div class="card"><h2>${name} ${k}</h2><table><tr><th></th><th>MAX</th><th>MIN</th></tr><tr><td>OD</td><td>${f(o.odMax)}</td><td>${f(o.odMin)}</td></tr><tr><td>ID</td><td>${f(o.idMax)}</td><td>${f(o.idMin)}</td></tr></table><button class="cp" data-k="${k}">Copiar ${k}</button></div>`;
+ const Td2=KP[cl]*Math.sqrt(p)+KD[cl]*s, es=ES[cl]*s, Tm=Math.max(0.05*p,0.005);
+ const pin={odMax:D,odMin:D-Tm,idMax:D-2*h-c};
+ const box={odMin:D+c,idMin:D-2*h,idMax:D-2*h+Tm};
+ if(st){pin.idMin=pin.idMax-Td2;box.odMax=box.odMin+1.3*Td2}
+ else{pin.idMin=pin.idMax-1.5*Td2;box.odMax=box.odMin+c;
+  }
+ pin.pdMax=D-h-es;pin.pdMin=pin.pdMax-Td2;box.pdMin=D-h;box.pdMax=box.pdMin+Td2;
+ const name=f(D)+' '+n+(st?'-ST ACME ':'-ACME ')+cl+'G';
+ const rows=o=>[['OD',o.odMax,o.odMin],['ID',o.idMax,o.idMin]].concat(o.pdMax!==undefined?[['PD',o.pdMax,o.pdMin]]:[]);
+ const tb=(k,o)=>`<div class="card"><h2>${name} ${k}</h2><table><tr><th></th><th>MAX</th><th>MIN</th></tr>${rows(o).map(r=>`<tr><td>${r[0]}</td><td>${f(r[1])}</td><td>${f(r[2])}</td></tr>`).join('')}</table><button class="cp" data-k="${k}">Copiar ${k}</button></div>`;
  $('out').innerHTML=tb('PIN',pin)+tb('BOX',box);
- const r=(k,o)=>`${name} ${k}\n\tMAX\tMIN\nOD\t${f(o.odMax)}\t${f(o.odMin)}\nID\t${f(o.idMax)}\t${f(o.idMin)}`;
+ const r=(k,o)=>`${name} ${k}\n\tMAX\tMIN\n`+rows(o).map(q=>`${q[0]}\t${f(q[1])}\t${f(q[2])}`).join('\n');
  txts={PIN:r('PIN',pin),BOX:r('BOX',box)};
  document.querySelectorAll('.cp').forEach(b=>{b.onclick=async()=>{const k=b.dataset.k;try{await navigator.clipboard.writeText(txts[k]);b.textContent='Copiado ✓'}catch(e){b.textContent='No se pudo copiar'}setTimeout(()=>b.textContent='Copiar '+k,1500)}});
+ $('info').innerHTML=`Paso p = ${p.toFixed(4)} in · altura h = ${h.toFixed(4)} · holgura c = ${c.toFixed(3)} · tol. diámetro de paso = ${Td2.toFixed(4)}` +` · desplazamiento del diámetro de paso del PIN (es) = ${es.toFixed(4)}`;
+ $('warn').textContent=st?'Stub ACME: la tolerancia de paso y su desplazamiento usan las clases 2G/3G/4G de B1.5, como indica B1.8. La tolerancia del ID del PIN (= tol. de paso) y la del OD de la BOX (1,3 × tol. de paso) están calibradas con el ejemplo 1"-8 ST ACME 2G, no tomadas de la norma. Verifica con B1.8.':'';
+ $('warn').style.display=st?'block':'none';
 }
-['d','n','t'].forEach(i=>$(i).addEventListener('input',run));
+['d','n','t','c','x'].forEach(i=>$(i).addEventListener('input',run));
 run();
 </script></body></html>
