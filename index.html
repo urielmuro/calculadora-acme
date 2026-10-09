@@ -49,7 +49,7 @@ function run(){
  const Td2=KP[cl]*Math.sqrt(p)+KD[cl]*s, es=ES[cl]*s, Tm=Math.max(0.05*p,0.005);
  const pin={odMax:D,odMin:D-Tm,idMax:D-2*h-c};
  const box={odMin:D+c,idMin:D-2*h,idMax:D-2*h+Tm};
- if(st){pin.idMin=pin.idMax-Td2;box.odMax=box.odMin+1.3*Td2}
+ if(st){pin.idMin=pin.idMax-Td2;box.odMax=box.odMin+Td2}
  else{pin.idMin=pin.idMax-1.5*Td2;box.odMax=box.odMin+c;
   }
  pin.pdMax=D-h-es;pin.pdMin=pin.pdMax-Td2;box.pdMin=D-h;box.pdMax=box.pdMin+Td2;
@@ -62,9 +62,10 @@ function run(){
  txts={PIN:r('PIN',pin),BOX:r('BOX',box)};
  document.querySelectorAll('.cp').forEach(b=>{b.onclick=async()=>{const k=b.dataset.k;try{await navigator.clipboard.writeText(txts[k]);b.textContent='Copiado ✓'}catch(e){b.textContent='No se pudo copiar'}setTimeout(()=>b.textContent='Copiar '+k,1500)}});
  $('info').innerHTML=`Paso p = ${p.toFixed(4)} in · altura h = ${h.toFixed(4)} · holgura c = ${c.toFixed(3)} · tol. diámetro de paso = ${Td2.toFixed(4)}` +` · desplazamiento del diámetro de paso del PIN (es) = ${es.toFixed(4)}`;
- $('warn').textContent=st?'Stub ACME: la tolerancia de paso y su desplazamiento usan las clases 2G/3G/4G de B1.5, como indica B1.8. La tolerancia del ID del PIN (= tol. de paso) y la del OD de la BOX (1,3 × tol. de paso) están calibradas con el ejemplo 1"-8 ST ACME 2G, no tomadas de la norma. Verifica con B1.8.':'';
+ $('warn').textContent=st?'Stub ACME: usa las clases 2G/3G/4G de B1.5 para la tolerancia de paso, como indica B1.8. El ID del PIN lleva 1,0 × la tolerancia de paso y el OD de la BOX = OD mínimo + 1,0 × la tolerancia de paso. Estas dos reglas vienen de una app de cálculo, no del texto de B1.8. Verifica con la norma.':'';
  $('warn').style.display=st?'block':'none';
 }
 ['d','n','t','c','x'].forEach(i=>$(i).addEventListener('input',run));
 run();
 </script></body></html>
+
