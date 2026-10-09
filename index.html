@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calculadora ACME / Stub ACME</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#666;--card:#f4f4f2;--bd:#d6d6d0;--ac:#b45309;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161616;--fg:#eee;--mut:#9a9a9a;--card:#222;--bd:#3a3a3a;--ac:#f59e0b}}
+:root[data-theme="dark"]{--bg:#161616;--fg:#eee;--mut:#9a9a9a;--card:#222;--bd:#3a3a3a;--ac:#f59e0b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif;padding:16px;max-width:560px;margin-inline:auto}
+h1{font-size:20px;margin:0 0 12px}label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+input,select,button{width:100%;font:inherit;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--fg)}
+button{background:var(--ac);color:#fff;border:0;font-weight:600;cursor:pointer}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-top:12px;overflow-x:auto}
+.card h2{font-size:15px;margin:0 0 8px;color:var(--ac)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--bd)}th:first-child,td:first-child{text-align:left}
+.note{font-size:12px;color:var(--mut);margin-top:14px;line-height:1.45}
+</style></head><body>
+<h1>Calculadora rosca ACME / Stub ACME</h1>
+<div class="row">
+<div><label>Diámetro nominal (in)</label><input id="d" type="number" step="0.001" value="1" inputmode="decimal"></div>
+<div><label>Hilos por pulgada (TPI)</label><input id="n" type="number" step="0.5" value="8" inputmode="decimal"></div>
+</div>
+<div style="margin-bottom:10px"><label>Tipo de rosca</label>
+<select id="t"><option value="stub">Stub ACME</option><option value="acme">ACME</option></select></div>
+<div id="out"></div>
+<button id="cp" style="margin-top:12px">Copiar valores</button>
+<p class="note">Valores en pulgadas, 3 decimales. PIN = rosca exterior, BOX = rosca interior. Fórmulas: altura de rosca h = 0,5p (ACME) o 0,3p (Stub); holgura c = 0,020 (≤10 TPI) o 0,010 (&gt;10 TPI); tolerancias de OD/ID de la tuerca y del ID del pin calibradas con tu ejemplo 1"-8 ST ACME (clase 2G). Verifica contra ASME B1.5 / B1.8 o tu norma antes de enviar a taller.</p>
+<script>
+const f=x=>x.toFixed(3).replace('.',',');
+let txt='';
+const $=id=>document.getElementById(id);
+function run(){
+ const D=parseFloat($('d').value),n=parseFloat($('n').value),st=$('t').value==='stub';
+ if(!(D>0&&n>0)){$('out').innerHTML='';return}
+ const p=1/n,h=(st?0.3:0.5)*p,c=n<=10?0.020:0.010,s=Math.sqrt(D);
+ const minor=D-2*h,t5=0.05*p;
+ const pin={odMax:D,odMin:D-t5,idMax:minor-c};pin.idMin=pin.idMax-(0.0105*s+t5);
+ const box={odMin:D+c,idMin:minor,idMax:minor+t5};box.odMax=box.odMin+0.022*s;
+ const name=f(D)+' '+n+(st?'-ST ACME':'-ACME');
+ const tb=(k,o)=>`<div class="card"><h2>${name} ${k}</h2><table><tr><th></th><th>MAX</th><th>MIN</th></tr><tr><td>OD</td><td>${f(o.odMax)}</td><td>${f(o.odMin)}</td></tr><tr><td>ID</td><td>${f(o.idMax)}</td><td>${f(o.idMin)}</td></tr></table></div>`;
+ $('out').innerHTML=tb('PIN',pin)+tb('BOX',box);
+ const r=(k,o)=>`${name} ${k}\n\tMAX\tMIN\nOD\t${f(o.odMax)}\t${f(o.odMin)}\nID\t${f(o.idMax)}\t${f(o.idMin)}`;
+ txt=r('PIN',pin)+'\n\n'+r('BOX',box);
+}
+['d','n','t'].forEach(i=>$(i).addEventListener('input',run));
+$('cp').onclick=async()=>{try{await navigator.clipboard.writeText(txt);$('cp').textContent='Copiado ✓'}catch(e){$('cp').textContent='No se pudo copiar'}setTimeout(()=>$('cp').textContent='Copiar valores',1500)};
+run();
+</script></body></html>
