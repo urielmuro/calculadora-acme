@@ -15,6 +15,7 @@ button{background:var(--ac);color:#fff;border:0;font-weight:600;cursor:pointer}
 .card h2{font-size:15px;margin:0 0 8px;color:var(--ac)}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
 th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--bd)}th:first-child,td:first-child{text-align:left}
+.cp{margin-top:10px}
 .note{font-size:12px;color:var(--mut);margin-top:14px;line-height:1.45}
 </style></head><body>
 <h1>Calculadora rosca ACME / Stub ACME</h1>
@@ -25,11 +26,10 @@ th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--bd)}th:firs
 <div style="margin-bottom:10px"><label>Tipo de rosca</label>
 <select id="t"><option value="stub">Stub ACME</option><option value="acme">ACME</option></select></div>
 <div id="out"></div>
-<button id="cp" style="margin-top:12px">Copiar valores</button>
 <p class="note">Valores en pulgadas, 3 decimales. PIN = rosca exterior, BOX = rosca interior. Fórmulas: altura de rosca h = 0,5p (ACME) o 0,3p (Stub); holgura c = 0,020 (≤10 TPI) o 0,010 (&gt;10 TPI); tolerancias de OD/ID de la tuerca y del ID del pin calibradas con tu ejemplo 1"-8 ST ACME (clase 2G). Verifica contra ASME B1.5 / B1.8 o tu norma antes de enviar a taller.</p>
 <script>
 const f=x=>x.toFixed(3).replace('.',',');
-let txt='';
+let txts={};
 const $=id=>document.getElementById(id);
 function run(){
  const D=parseFloat($('d').value),n=parseFloat($('n').value),st=$('t').value==='stub';
@@ -39,12 +39,12 @@ function run(){
  const pin={odMax:D,odMin:D-t5,idMax:minor-c};pin.idMin=pin.idMax-(0.0105*s+t5);
  const box={odMin:D+c,idMin:minor,idMax:minor+t5};box.odMax=box.odMin+0.022*s;
  const name=f(D)+' '+n+(st?'-ST ACME':'-ACME');
- const tb=(k,o)=>`<div class="card"><h2>${name} ${k}</h2><table><tr><th></th><th>MAX</th><th>MIN</th></tr><tr><td>OD</td><td>${f(o.odMax)}</td><td>${f(o.odMin)}</td></tr><tr><td>ID</td><td>${f(o.idMax)}</td><td>${f(o.idMin)}</td></tr></table></div>`;
+ const tb=(k,o)=>`<div class="card"><h2>${name} ${k}</h2><table><tr><th></th><th>MAX</th><th>MIN</th></tr><tr><td>OD</td><td>${f(o.odMax)}</td><td>${f(o.odMin)}</td></tr><tr><td>ID</td><td>${f(o.idMax)}</td><td>${f(o.idMin)}</td></tr></table><button class="cp" data-k="${k}">Copiar ${k}</button></div>`;
  $('out').innerHTML=tb('PIN',pin)+tb('BOX',box);
  const r=(k,o)=>`${name} ${k}\n\tMAX\tMIN\nOD\t${f(o.odMax)}\t${f(o.odMin)}\nID\t${f(o.idMax)}\t${f(o.idMin)}`;
- txt=r('PIN',pin)+'\n\n'+r('BOX',box);
+ txts={PIN:r('PIN',pin),BOX:r('BOX',box)};
+ document.querySelectorAll('.cp').forEach(b=>{b.onclick=async()=>{const k=b.dataset.k;try{await navigator.clipboard.writeText(txts[k]);b.textContent='Copiado ✓'}catch(e){b.textContent='No se pudo copiar'}setTimeout(()=>b.textContent='Copiar '+k,1500)}});
 }
 ['d','n','t'].forEach(i=>$(i).addEventListener('input',run));
-$('cp').onclick=async()=>{try{await navigator.clipboard.writeText(txt);$('cp').textContent='Copiado ✓'}catch(e){$('cp').textContent='No se pudo copiar'}setTimeout(()=>$('cp').textContent='Copiar valores',1500)};
 run();
 </script></body></html>
